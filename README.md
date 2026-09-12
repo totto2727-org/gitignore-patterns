@@ -54,32 +54,8 @@ Until publication, consume the checked-out source in a repository-local workflow
 
 ## API
 
-### `generateIgnorePatterns(root, options?)`
-
-```ts
-function generateIgnorePatterns(
-  root: string | URL,
-  options?: { readonly ignoreCase?: boolean },
-): Promise<string[]>
-```
-
-`root` is a directory path or `file:` URL and is the required base directory for the consuming ignore configuration.
-Relative paths resolve against the process working directory.
-`ignoreCase` defaults to `false` and does not read Git's `core.ignorecase` setting.
-The returned array is a deterministic snapshot of currently ignored entries, using file patterns such as `/nested/file.log` and directory patterns such as `/dist/`.
-There are no negative patterns in the generated output.
-
-Only `.gitignore` files at or below the supplied root participate.
-Ancestor ignore files, global excludes, `.git/info/exclude`, and tracked-file status are not consulted.
-`.git` entries are not scanned or emitted.
-A reachable `.gitignore` is loaded even when its own filename is ignored.
-Symbolic-link entries can be excluded but their targets are never traversed, symbolic `.gitignore` files are not loaded, and the root must be a non-symbolic-link directory.
-
-Filesystem failures retain their original error, including `ENOENT` for a missing root.
-A non-directory or symbolic-link root rejects with `TypeError`, and a non-file URL rejects through Node URL conversion.
-The scan is neither an atomic filesystem snapshot nor a security boundary against concurrent replacement.
-
-The planned generated reference is [JSR API documentation](https://jsr.io/@totto2727/gitignore-patterns/doc), which becomes available after publication.
+The planned [JSR API documentation](https://jsr.io/@totto2727/gitignore-patterns/doc) will become available after publication.
+It documents `generateIgnorePatterns` and `GenerateIgnorePatternsOptions` from their public TSDoc.
 
 ### Snapshot and consumer boundaries
 
@@ -87,6 +63,9 @@ Call the function again after files or Gitignore rules change.
 A previously emitted ignored-directory pattern covers new descendants, but newly created individually ignored files require regeneration.
 VitePlus independently reads Gitignore files, so its native exclusions are additive and may differ from Git for valid patterns such as literal braces or symlink traversal.
 This package escapes its snapshot literals correctly but cannot undo exclusions independently imposed by a consumer.
+Only `.gitignore` files at or below the supplied root participate, and `.git`, ancestor rules, global excludes, `.git/info/exclude`, and tracked-file status are excluded from the snapshot.
+A reachable ignored `.gitignore` is loaded, but symbolic links and symbolic `.gitignore` files are never followed.
+The scan preserves filesystem errors such as `ENOENT`, rejects invalid roots with `TypeError`, and is not an atomic security boundary.
 
 ## Development
 

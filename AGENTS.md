@@ -17,6 +17,7 @@ Run commands from the repository root.
 Use `nix develop` for the pinned Deno, Node, and VitePlus development environment when it is available.
 
 - `deno task check`: Check formatting, lint, and the exported TypeScript API.
+- `deno task fix`: Apply Deno formatting and supported lint fixes.
 - `deno task test`: Run Deno unit and real CLI integration tests with minimal read, write, run, and environment permissions.
 - `deno task ci`: Run all source checks, tests, and the clean-tree JSR publish dry run.
 
@@ -39,6 +40,7 @@ Use `nix develop` for the pinned Deno, Node, and VitePlus development environmen
 - Preserve the public error behavior for invalid, missing, and symbolic-link roots.
 - Keep tests public-API based. CLI tests must execute actual `git` and `vp` behavior rather than mock their pattern handling.
 - Keep runtime permissions constrained. Test grants are limited in `deno.json`; do not replace them with `-A` or add a runtime command that needs Git or VitePlus.
+- Symlink fixture tests use `ln` because Deno requires unscoped read and write permission for native symlink creation. `ln` is supplied by the Nix development environment and allowed as one named test executable instead of broad filesystem grants.
 - Keep `src/` as a directory publication include. Do not add Nix package, app, or overlay outputs because this repository is a library.
 - Source provenance is the local `nikhilsnayak/effective-rsc` checkout, commit `bf3a9a119fd909276a4d78114aa3b29dcdef63ba`, path `packages/gitignore-patterns`. Do not claim a remote source commit URL.
 
