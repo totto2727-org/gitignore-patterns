@@ -1,0 +1,23 @@
+# Disabled until package metadata and the registry's GitHub trust are configured.
+# Follow AGENTS.md, then rename this file to publish.yml.
+name: Publish to JSR
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: totto2727-org/monorepo/.github/actions/setup-nix@main
+      - uses: totto2727-org/monorepo/.github/actions/publish-jsr@main
+        with:
+          working-directory: .

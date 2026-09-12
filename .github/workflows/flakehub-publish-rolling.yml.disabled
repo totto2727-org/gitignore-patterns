@@ -1,0 +1,21 @@
+# Disabled in the template. Complete the initialization and publication checks
+# in AGENTS.md before renaming this file to flakehub-publish-rolling.yml.
+name: Publish every Git push to main to FlakeHub
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  flakehub-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: totto2727-org/monorepo/.github/actions/setup-nix@main
+      - uses: totto2727-org/monorepo/.github/actions/publish-flakehub@main
