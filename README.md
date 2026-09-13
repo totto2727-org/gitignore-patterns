@@ -36,7 +36,8 @@ An ignored parent directory cannot be reopened by a rule inside that directory.
 
 ## Setup
 
-The intended JSR package name is `@totto2727/gitignore-patterns`, but publication is not available yet because an owner must first create the JSR scope/package and link it to `totto2727-org/gitignore-patterns`.
+The JSR package name is `@totto2727/gitignore-patterns`.
+Automated publication is enabled for `v*` tags and requires the JSR package to be linked to `totto2727-org/gitignore-patterns`.
 
 After it is published, add it to a Deno project with:
 
