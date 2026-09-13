@@ -7,7 +7,7 @@ src/index.ts             Public snapshot generator
 src/index.test.ts        Eleven public API and filesystem behavior tests
 tests/cli.test.ts        Real Git and VitePlus CLI integration scenarios
 deno.json                Package identity, exports, tasks, and Deno permissions
-.github/workflows/       Linux CI and tag-triggered JSR publication workflow
+.github/workflows/       Linux CI and main-branch JSR publication workflow
 flake.nix                Development-only Deno, Node, and VitePlus shell
 ```
 
@@ -32,7 +32,7 @@ Use `nix develop` for the pinned Deno, Node, and VitePlus development environmen
 
 - Deno owns formatting, linting, typechecking, tests, package metadata, and the JSR dry run.
 - The Linux CI job uses `totto2727-org/monorepo/.github/actions/setup-nix@main`, then `eval "$(nix print-dev-env \"$GITHUB_WORKSPACE#default\")"` and `deno task ci`.
-- The enabled `publish.yml` workflow publishes `@totto2727/gitignore-patterns` on `v*` tags through the shared `publish-jsr@main` action using repository OIDC. Before releasing, ensure the JSR scope/package is linked to `totto2727-org/gitignore-patterns`. Never add a registry token.
+- The enabled `publish.yml` workflow publishes `@totto2727/gitignore-patterns` on pushes to `main` (including merged pull requests) through the shared `publish-jsr@main` action using repository OIDC. Before releasing, ensure the JSR scope/package is linked to `totto2727-org/gitignore-patterns`. Never add a registry token.
 
 ## Package-specific rules
 
