@@ -1,0 +1,34 @@
+{
+  "name": "@totto2727/gitignore-patterns",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "src/"
+    ],
+    "exclude": [
+      "src/**/*.test.ts"
+    ]
+  },
+  "tasks": {
+    "check": "deno fmt --check && deno lint && deno check",
+    "fix": "deno fmt && deno lint --fix",
+    "test": "deno test --allow-read=. --allow-write=./tmp --allow-run=git,vp,ln --allow-env=GIT_CONFIG_NOSYSTEM,GIT_CONFIG_GLOBAL,NO_COLOR,PATH",
+    "ci": "deno task check && deno task test && deno publish --dry-run"
+  },
+  "fmt": {
+    "proseWrap": "preserve",
+    "semiColons": false,
+    "singleQuote": true,
+    "lineWidth": 120
+  },
+  "imports": {
+    "ignore": "npm:ignore@7.0.9",
+    "@std/assert": "jsr:@std/assert@1.0.16"
+  }
+}
