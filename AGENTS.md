@@ -4,7 +4,7 @@
 
 ```text
 src/index.ts             Public snapshot generator
-src/index_test.ts        Eleven public API and filesystem behavior tests
+src/index.test.ts        Eleven public API and filesystem behavior tests
 tests/cli.test.ts        Real Git and VitePlus CLI integration scenarios
 deno.json                Package identity, exports, tasks, and Deno permissions
 .github/workflows/       Linux CI and tag-triggered JSR publication workflow
