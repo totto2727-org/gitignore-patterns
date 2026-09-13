@@ -76,6 +76,4 @@ For repository structure and development commands, see [AGENTS.md](https://githu
 
 [MIT](./LICENSE)
 
-_Source provenance: extracted from `packages/gitignore-patterns` in the local `nikhilsnayak/effective-rsc` checkout at commit `bf3a9a119fd909276a4d78114aa3b29dcdef63ba`, preserving the original MIT copyright notice for Nikhil S._
-
 _This README was generated from the [share-artifact skill](https://raw.githubusercontent.com/totto2727-org/agent/refs/heads/main/plugins/totto2727-coding/skills/share-artifact/SKILL.md) and [README template](https://raw.githubusercontent.com/totto2727-org/agent/refs/heads/main/plugins/totto2727-coding/skills/share-artifact/readme/template.md)._
