@@ -1,0 +1,50 @@
+{
+  "name": "@totto2727/gitignore-patterns",
+  "version": "0.1.0",
+  "description": "Snapshot Gitignore exclusions as escaped, root-relative VitePlus patterns",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totto2727-org/gitignore-patterns.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "ignore": "^7.0.9"
+  },
+  "devDependencies": {
+    "@tsconfig/node-ts": "^23.6.4",
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/node": "^24.19.1",
+    "typescript": "^7.0.2",
+    "vite-plus": "^1.1.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0",
+    "vitest": "5.0.3"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11.17.0",
+      "onFail": "error"
+    }
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "npm@11.17.0"
+}

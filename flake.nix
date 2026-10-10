@@ -1,5 +1,5 @@
 {
-  description = "Deno development environment for gitignore-patterns";
+  description = "Vite+ and npm development environment for gitignore-patterns";
 
   inputs = {
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1";
@@ -29,7 +29,6 @@
       devShells = forEachSystem (system: {
         default = (mkPkgs system).mkShell {
           packages = with (mkPkgs system); [
-            deno
             git
             nodejs_24
             vite-plus

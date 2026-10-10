@@ -1,40 +1,51 @@
-import { assert, assertEquals } from '@std/assert'
+import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+
+import { afterAll, expect, test } from 'vite-plus/test'
+
 import { generateIgnorePatterns } from '../src/index.ts'
 
 const temporaryParent = resolve(dirname(fileURLToPath(import.meta.url)), '../tmp')
 await mkdir(temporaryParent, { recursive: true })
 const temporary = await mkdtemp(resolve(temporaryParent, 'gitignore-acceptance-'))
 
-const command = async (command: string, args: string[], cwd: string, stdin?: string) => {
-  const child = new Deno.Command(command, {
-    args,
-    cwd,
-    env: {
-      GIT_CONFIG_NOSYSTEM: '1',
-      GIT_CONFIG_GLOBAL: resolve(temporary, 'empty-git-config'),
-      NO_COLOR: '1',
-    },
-    stdin: stdin === undefined ? 'null' : 'piped',
-    stdout: 'piped',
-    stderr: 'piped',
-  }).spawn()
-  const timeout = setTimeout(() => child.kill('SIGTERM'), 30_000)
-  if (stdin !== undefined) {
-    const writer = child.stdin.getWriter()
-    await writer.write(new TextEncoder().encode(stdin))
-    await writer.close()
-  }
-  const result = await child.output()
-  clearTimeout(timeout)
-  return {
-    code: result.code,
-    stderr: new TextDecoder().decode(result.stderr),
-    stdout: new TextDecoder().decode(result.stdout),
-  }
-}
+const vpCli = fileURLToPath(new URL('../node_modules/vite-plus/bin/vp', import.meta.url))
+
+afterAll(async () => {
+  await rm(temporary, { recursive: true, force: true })
+})
+
+const command = (command: string, args: string[], cwd: string, stdin?: string) =>
+  new Promise<{ code: number; stderr: string; stdout: string }>((resolveCommand, reject) => {
+    const child = execFile(
+      command === 'vp' ? process.execPath : command,
+      command === 'vp' ? [vpCli, ...args] : args,
+      {
+        cwd,
+        env: {
+          ...process.env,
+          GIT_CONFIG_NOSYSTEM: '1',
+          GIT_CONFIG_GLOBAL: resolve(temporary, 'empty-git-config'),
+          NO_COLOR: '1',
+        },
+        timeout: 30_000,
+        maxBuffer: 10 * 1024 * 1024,
+        encoding: 'utf8',
+      },
+      (error, stdout, stderr) => {
+        const code = error ? error.code : 0
+        if (typeof code !== 'number' || error?.killed) {
+          reject(error)
+          return
+        }
+        resolveCommand({ code, stderr, stdout })
+      },
+    )
+    child.stdin?.on('error', reject)
+    child.stdin?.end(stdin)
+  })
 
 const write = async (directory: string, name: string, contents: string): Promise<void> => {
   const target = resolve(directory, name)
@@ -52,9 +63,8 @@ const writeConfig = (directory: string, patterns: string[]) =>
 const createFixture = async (name: string, files: string[], ignores: Record<string, string>): Promise<string> => {
   const directory = resolve(temporary, name)
   await mkdir(directory)
-  assertEquals((await command('git', ['init', '--quiet'], directory)).code, 0)
-  assertEquals((await command('git', ['config', 'core.ignoreCase', 'false'], directory)).code, 0)
-  await write(directory, 'pnpm-workspace.yaml', 'packages: []\n')
+  expect((await command('git', ['init', '--quiet'], directory)).code).toBe(0)
+  expect((await command('git', ['config', 'core.ignoreCase', 'false'], directory)).code).toBe(0)
   await write(directory, 'package.json', '{"private":true,"type":"module"}\n')
   for (const file of files) await write(directory, file, 'debugger;const value={a:1,b:2};console.log(value)\n')
   for (const [file, contents] of Object.entries(ignores)) await write(directory, file, contents)
@@ -78,7 +88,7 @@ const gitSelected = async (directory: string, files: string[]): Promise<string[]
     directory,
     `${files.join('\0')}\0`,
   )
-  assertEquals([0, 1].includes(result.code), true)
+  expect([0, 1]).toContain(result.code)
   const ignored = new Set(result.stdout.split('\0'))
   return files.filter((file) => !ignored.has(file))
 }
@@ -90,23 +100,30 @@ const assertCliSelection = async (
   label: string,
 ): Promise<void> => {
   const candidates = new Set(files.map(display))
-  assertEquals(candidates.size, files.length, 'Fixture display paths must be unambiguous')
+  expect(candidates.size, 'Fixture display paths must be unambiguous').toBe(files.length)
   const fmt = await command('vp', ['fmt', '.', '--list-different'], directory)
-  assertEquals(fmt.code, 1, `${label}: vp fmt\n${fmt.stderr}`)
-  const listed = fmt.stdout.split(/\r?\n/).filter((file) => candidates.has(file)).sort()
-  assertEquals(listed, expected.map(display).sort(), `${label}: vp fmt`)
+  expect(fmt.code, `${label}: vp fmt\n${fmt.stderr}`).toBe(1)
+  const listed = fmt.stdout
+    .split(/\r?\n/)
+    .filter((file) => candidates.has(file))
+    .sort()
+  expect(listed, `${label}: vp fmt`).toEqual(expected.map(display).sort())
   const lint = await command('vp', ['lint', '.', '--debug=files'], directory)
-  assertEquals(lint.code, 0, `${label}: vp lint\n${lint.stderr}`)
-  const selected = lint.stdout.split(/\r?\n/).filter((file) => candidates.has(file)).sort()
-  assertEquals(selected, expected.map(display).sort(), `${label}: vp lint`)
+  expect(lint.code, `${label}: vp lint\n${lint.stderr}`).toBe(0)
+  const selected = lint.stdout
+    .split(/\r?\n/)
+    .filter((file) => candidates.has(file))
+    .sort()
+  expect(selected, `${label}: vp lint`).toEqual(expected.map(display).sort())
   const diagnostics = await command('vp', ['lint', '.', '-D', 'no-debugger', '--format=json'], directory)
-  assertEquals(diagnostics.code, 1, `${label}: vp lint diagnostics\n${diagnostics.stderr}`)
-  const filenames = (JSON.parse(diagnostics.stdout) as { diagnostics: { code: string; filename: string }[] })
-    .diagnostics
+  expect(diagnostics.code, `${label}: vp lint diagnostics\n${diagnostics.stderr}`).toBe(1)
+  const filenames = (
+    JSON.parse(diagnostics.stdout) as { diagnostics: { code: string; filename: string }[] }
+  ).diagnostics
     .filter((diagnostic) => diagnostic.code === 'eslint(no-debugger)')
     .map((diagnostic) => diagnostic.filename)
     .sort()
-  assertEquals(filenames, expected.map(display).sort(), `${label}: vp lint diagnostics`)
+  expect(filenames, `${label}: vp lint diagnostics`).toEqual(expected.map(display).sort())
 }
 
 interface Scenario {
@@ -167,16 +184,17 @@ const scenarios: readonly Scenario[] = [
   {
     name: 'literal-escaping',
     ignores: {
-      '.gitignore': [
-        '#comment.js',
-        String.raw`\#hash.js`,
-        String.raw`\!bang.js`,
-        String.raw`a\[1\].js`,
-        'a{b,c}.js',
-        'space\\ ',
-        ' leading/',
-        'middle space.js',
-      ].join('\n') + '\n',
+      '.gitignore':
+        [
+          '#comment.js',
+          String.raw`\#hash.js`,
+          String.raw`\!bang.js`,
+          String.raw`a\[1\].js`,
+          'a{b,c}.js',
+          'space\\ ',
+          ' leading/',
+          'middle space.js',
+        ].join('\n') + '\n',
       'pkg[1]/.gitignore': '/drop.js\n',
     },
     ignored: [
@@ -217,16 +235,16 @@ back\\slash/
 ]
 
 for (const scenario of scenarios) {
-  Deno.test(`consumer ${scenario.name}: generated exclusions control real Git and VitePlus`, async () => {
+  test(`consumer ${scenario.name}: generated exclusions control real Git and VitePlus`, async () => {
     const files = [...scenario.ignored, ...scenario.allowed]
     const directory = await createFixture(scenario.name, files, scenario.ignores)
     try {
-      assertEquals((await gitSelected(directory, files)).sort(), [...scenario.allowed].sort())
+      expect((await gitSelected(directory, files)).sort()).toEqual([...scenario.allowed].sort())
       const patterns = await generateIgnorePatterns(pathToFileURL(`${directory}/`), { ignoreCase: false })
-      assert(patterns.every((pattern) => pattern.startsWith('/')))
+      for (const pattern of patterns) expect(pattern).toMatch(/^\//)
       if (scenario.name === 'negation-and-parent-pruning') {
-        assert(patterns.includes('/blocked/'))
-        assert(!patterns.some((pattern) => pattern.startsWith('/blocked/keep')))
+        expect(patterns).toContain('/blocked/')
+        expect(patterns).not.toEqual(expect.arrayContaining([expect.stringMatching(/^\/blocked\/keep/)]))
       }
       await moveIgnores(directory, scenario.ignores, true)
       await writeConfig(directory, [])
@@ -236,10 +254,10 @@ for (const scenario of scenarios) {
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
-  })
+  }, 120_000)
 }
 
-Deno.test('consumer snapshot refresh: new ignored files require a refreshed snapshot', async () => {
+test('consumer snapshot refresh: new ignored files require a refreshed snapshot', async () => {
   const ignores = { '.gitignore': 'future-*.js\n/generated/\n' }
   const initial = ['keep.js', 'future-now.js', 'generated/old.js']
   const directory = await createFixture('snapshot-refresh', initial, ignores)
@@ -259,4 +277,4 @@ Deno.test('consumer snapshot refresh: new ignored files require a refreshed snap
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
-})
+}, 120_000)
