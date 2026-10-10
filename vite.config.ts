@@ -32,14 +32,10 @@ export default defineConfig({
       },
       ci: {
         command: '',
-        dependsOn: ['check', 'test', 'package'],
+        dependsOn: ['check', 'test', 'build'],
       },
       fix: {
         command: 'vp check --fix',
-      },
-      package: {
-        command: 'npm pack --dry-run',
-        dependsOn: ['build'],
       },
       test: {
         command: 'vp test run',

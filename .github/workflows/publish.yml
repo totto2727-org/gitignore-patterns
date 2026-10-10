@@ -2,14 +2,7 @@ name: Publish to npm
 
 on:
   push:
-    tags: ['v*']
-
-permissions:
-  contents: read
-
-concurrency:
-  group: npm-publish
-  cancel-in-progress: false
+    branches: [main]
 
 jobs:
   publish:
@@ -24,16 +17,10 @@ jobs:
           persist-credentials: false
       - uses: totto2727-org/monorepo/.github/actions/setup-nix@main
       - uses: totto2727-org/monorepo/.github/actions/setup-typescript@main
-      - name: Verify release tag and build npm artifact
+      - name: Build npm artifact
         run: |
           eval "$(nix print-dev-env "$GITHUB_WORKSPACE#default")"
-          expected_tag="v$(node -p "require('./package.json').version")"
-          if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
-            echo "::error::Release tag must match package.json version ($expected_tag)"
-            exit 1
-          fi
           vp pack
-      - name: Publish with npm trusted publishing
-        run: |
-          eval "$(nix print-dev-env "$GITHUB_WORKSPACE#default")"
-          npm publish --provenance --access public --registry=https://registry.npmjs.org/
+      - uses: totto2727-org/monorepo/.github/actions/publish-npm@main
+        with:
+          working-directory: .

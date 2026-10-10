@@ -36,19 +36,11 @@ An ignored parent directory cannot be reopened by a rule inside that directory.
 
 ## Setup
 
-Install the npm package:
-
-```bash
-npm install @totto2727/gitignore-patterns
-```
-
-If you use VitePlus to manage dependencies:
+Install the package with VitePlus:
 
 ```bash
 vp add @totto2727/gitignore-patterns
 ```
-
-See [publication setup in AGENTS.md](https://github.com/totto2727-org/gitignore-patterns/blob/main/AGENTS.md#npm-publication) if the package is not yet available.
 
 ## API
 
