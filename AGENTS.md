@@ -8,19 +8,19 @@ Contributor and release-maintainer guidance for this npm library.
 - `src/index.test.ts`: Public API and filesystem behavior tests.
 - `tests/cli.test.ts`: Real Git and VitePlus CLI integration scenarios.
 - `package.json`: npm identity, dependencies, and ESM/type exports.
-- `bun.lock`: Sole dependency lockfile.
-- `bunfig.toml`: 24-hour dependency release-age policy.
+- `pnpm-lock.yaml`: Sole dependency lockfile.
+- `pnpm-workspace.yaml`: 24-hour dependency release-age policy and Vite+ toolchain overrides.
 - `vite.config.ts`: Vite+ checks, Vitest, declaration packaging, and tasks.
 - `tsconfig.json`: Strictest and node-ts source type checks.
 - `.github/workflows/`: Linux CI and main-branch npm publication.
-- `flake.nix`: Development-only Node, Bun, Git, and VitePlus shell.
+- `flake.nix`: Development-only Node, pnpm, Git, and VitePlus shell.
 
 ## Development commands
 
 Run commands from the repository root inside `nix develop`.
-Use VitePlus for dependency management and project tasks, with Bun selected by `packageManager`.
+Use VitePlus for dependency management and project tasks, with pnpm selected by `packageManager`.
 
-- `vp install --frozen-lockfile`: Install the exact dependency graph from `bun.lock`.
+- `vp install --frozen-lockfile`: Install the exact dependency graph from `pnpm-lock.yaml`.
 - `vp install`: Update dependencies and the sole lockfile when declarations change.
 - `vp run check`: Check formatting, lint, and source types.
 - `vp run fix`: Apply Vite+ formatting and supported lint fixes.
@@ -42,9 +42,9 @@ Use VitePlus for dependency management and project tasks, with Bun selected by `
 
 - The configuration is based on `template-vite-plus-lib`. Vite+ owns formatting, lint, source type checks, tests, and packaging. Tests import `vite-plus/test`.
 - `vp pack` builds the library and declarations through `pack.dts: true`. Do not replace it with `vp build`, which invokes Vite production builds.
-- Bun is the only dependency manager. Do not add npm, pnpm, or Deno lockfiles.
-- `bunfig.toml` sets `minimumReleaseAge = 86400`, measured in seconds, to preserve the template's 24-hour waiting period. Do not reduce the window or add exclusions.
-- Keep external dependency ranges as carets. Vite+'s official toolchain overrides are exceptions: match the `vite` alias to installed `vite-plus` and the `vitest` override to `vp toolchain vitest`. See the [Vite+ migration guide](https://viteplus.dev/guide/migrate).
+- pnpm is the only dependency manager. Do not add npm, Bun, or Deno lockfiles.
+- `pnpm-workspace.yaml` sets `minimumReleaseAge: 1440`, measured in minutes, and `minimumReleaseAgeStrict: true` to preserve the 24-hour waiting period without falling back to younger releases. Do not reduce the window or add exclusions.
+- Keep external dependency ranges as carets. Vite+'s official toolchain overrides in `pnpm-workspace.yaml` are exceptions: match the `vite@*` alias to installed `vite-plus` and the `vitest@*` override to `vp toolchain vitest`. See the [Vite+ migration guide](https://viteplus.dev/guide/migrate).
 - Preserve no semicolons, single quotes, 120-column formatting, and Markdown without soft wrapping through Vite+.
 - CI runs `setup-nix@main`, then `setup-typescript@main`. The latter installs the locked graph through `vp install --frozen-lockfile`. The run step loads the shell with `eval "$(nix print-dev-env "$GITHUB_WORKSPACE#default")"` and invokes `vp run ci`.
 - Keep shared `totto2727-org/monorepo` actions on `@main`. Do not add Nix package, app, or overlay outputs to this library.

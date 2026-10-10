@@ -31,7 +31,7 @@
           packages = with (mkPkgs system); [
             git
             nodejs_24
-            bun
+            pnpm
             vite-plus
             nixfmt
           ];

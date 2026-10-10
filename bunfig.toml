@@ -1,3 +1,0 @@
-[install]
-# Keep the existing 24-hour waiting period for new dependency resolutions.
-minimumReleaseAge = 86400
