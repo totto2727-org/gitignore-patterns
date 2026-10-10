@@ -1,6 +1,7 @@
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import ignore from 'ignore'
 
 /** Options for {@link generateIgnorePatterns}. */
@@ -24,10 +25,7 @@ const toRootPath = (root: string | URL): string => resolve(typeof root === 'stri
 
 const relativePath = (from: string, to: string): string => relative(from, to).split(sep).join('/')
 
-const loadMatcher = async (
-  directory: string,
-  ignoreCase: boolean,
-): Promise<Matcher | undefined> => {
+const loadMatcher = async (directory: string, ignoreCase: boolean): Promise<Matcher | undefined> => {
   const ignoreFile = resolve(directory, '.gitignore')
   const metadata = await lstat(ignoreFile).catch((error: unknown) => {
     if (isMissingPath(error)) {
@@ -47,10 +45,7 @@ const loadMatcher = async (
 }
 
 const isMissingPath = (error: unknown): error is NodeJS.ErrnoException =>
-  typeof error === 'object' &&
-  error !== null &&
-  'code' in error &&
-  (error as NodeJS.ErrnoException).code === 'ENOENT'
+  typeof error === 'object' && error !== null && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT'
 
 const isIgnored = (matchers: readonly Matcher[], path: string, directory: boolean): boolean => {
   let ignored = false
@@ -106,9 +101,7 @@ export const generateIgnorePatterns = async (
       const directoryEntry = metadata.isDirectory()
       const ignored = isIgnored(matchers, entryPath, directoryEntry)
       if (ignored) {
-        patterns.push(
-          `/${escapePattern(relativePath(rootPath, entryPath))}${directoryEntry ? '/' : ''}`,
-        )
+        patterns.push(`/${escapePattern(relativePath(rootPath, entryPath))}${directoryEntry ? '/' : ''}`)
       }
 
       if (directoryEntry && !ignored) {

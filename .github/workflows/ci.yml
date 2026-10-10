@@ -17,7 +17,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: totto2727-org/monorepo/.github/actions/setup-nix@main
-      - name: Verify Deno project
+      - uses: totto2727-org/monorepo/.github/actions/setup-typescript@main
+      - name: Verify Vite+ project
         run: |
           eval "$(nix print-dev-env "$GITHUB_WORKSPACE#default")"
-          deno task ci
+          vp run ci

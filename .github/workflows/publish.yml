@@ -1,4 +1,4 @@
-name: Publish to JSR
+name: Publish to npm
 
 on:
   push:
@@ -16,6 +16,11 @@ jobs:
         with:
           persist-credentials: false
       - uses: totto2727-org/monorepo/.github/actions/setup-nix@main
-      - uses: totto2727-org/monorepo/.github/actions/publish-jsr@main
+      - uses: totto2727-org/monorepo/.github/actions/setup-typescript@main
+      - name: Build npm artifact
+        run: |
+          eval "$(nix print-dev-env "$GITHUB_WORKSPACE#default")"
+          vp pack
+      - uses: totto2727-org/monorepo/.github/actions/publish-npm@main
         with:
           working-directory: .

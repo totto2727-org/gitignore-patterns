@@ -27,36 +27,37 @@ An ignored parent directory cannot be reopened by a rule inside that directory.
 - Discovers reachable nested Gitignore files and preserves their directory scope and precedence.
 - Delegates comments, escapes, negation, and pattern parsing to `ignore`.
 - Produces escaped positive literals for consumer glob configuration, including escaped braces, and prunes ignored directories.
-- Ships ESM TypeScript through JSR with no runtime Git or VitePlus dependency.
+- Ships ESM JavaScript and TypeScript declarations through npm with no runtime Git or VitePlus dependency.
 
 ## Prerequisites
 
-- Node.js 22 or later or Deno, with read access to the chosen tree. Deno callers must grant scoped read permission for that tree.
+- Node.js 24 or later, with read access to the chosen tree.
 - A consumer `ignorePatterns` configuration rooted at the same directory as `root`, such as VitePlus fmt and lint. The output is not a general-purpose minimatch or arbitrary glob configuration.
 
 ## Setup
 
-The JSR package name is `@totto2727/gitignore-patterns`.
-Automated publication is enabled for pushes to `main` (including merged pull requests) and requires the JSR package to be linked to `totto2727-org/gitignore-patterns`.
-
-After it is published, add it to a Deno project with:
+Install the package with VitePlus:
 
 ```bash
-deno add jsr:@totto2727/gitignore-patterns
+vp add @totto2727/gitignore-patterns
 ```
-
-For a Node or Vite consumer, add the JSR package with:
-
-```bash
-npx jsr add @totto2727/gitignore-patterns
-```
-
-Until publication, consume the checked-out source in a repository-local workflow rather than relying on an unpublished registry specifier.
 
 ## API
 
-The planned [JSR API documentation](https://jsr.io/@totto2727/gitignore-patterns/doc) will become available after publication.
-It documents `generateIgnorePatterns` and `GenerateIgnorePatternsOptions` from their public TSDoc.
+The package exports `generateIgnorePatterns` and the `GenerateIgnorePatternsOptions` type from its root entry point.
+TypeScript declarations include their public TSDoc.
+
+```ts
+import { generateIgnorePatterns, type GenerateIgnorePatternsOptions } from '@totto2727/gitignore-patterns'
+
+const options: GenerateIgnorePatternsOptions = { ignoreCase: false }
+const patterns: string[] = await generateIgnorePatterns(new URL('.', import.meta.url), options)
+```
+
+`generateIgnorePatterns(root, options?)` accepts a directory path or a `file:` URL and returns `Promise<string[]>`.
+Relative paths resolve from the process working directory.
+`options.ignoreCase` defaults to `false`.
+Set it to `true` for case-insensitive Gitignore matching, independent of Git's `core.ignorecase` setting.
 
 ### Snapshot and consumer boundaries
 
