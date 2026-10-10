@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite-plus'
+import { defaultExclude, defineConfig } from 'vite-plus'
 
 export default defineConfig({
   fmt: {
@@ -16,7 +16,7 @@ export default defineConfig({
     singleQuote: true,
   },
   lint: { options: { typeAware: true, typeCheck: true } },
-  test: { include: ['src/**/*.test.ts', 'tests/**/*.test.ts'] },
+  test: { exclude: [...defaultExclude, '**/.direnv/**'] },
   pack: { entry: ['src/index.ts'], format: ['esm'], platform: 'node', dts: true, clean: true },
   run: {
     tasks: {
