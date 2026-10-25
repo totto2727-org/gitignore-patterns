@@ -3,14 +3,10 @@
 
   inputs = {
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1";
-    vite-plus-overlay = {
-      url = "github:ryoppippi/nix-vite-plus";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
-    { nixpkgs, vite-plus-overlay, ... }:
+    { nixpkgs, ... }:
     let
       supportedSystems = [
         "aarch64-darwin"
@@ -22,7 +18,6 @@
         system:
         import nixpkgs {
           inherit system;
-          overlays = [ vite-plus-overlay.overlays.default ];
         };
     in
     {
@@ -30,11 +25,12 @@
         default = (mkPkgs system).mkShell {
           packages = with (mkPkgs system); [
             git
-            nodejs_24
-            pnpm
-            vite-plus
             nixfmt
           ];
+          shellHook = ''
+            # Enable Git Hook
+            vp config
+          '';
         };
       });
     };
