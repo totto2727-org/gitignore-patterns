@@ -21,7 +21,10 @@
         };
     in
     {
-      devShells = forEachSystem (system: {
+      devShells = forEachSystem (system: rec {
+        ci = default.overrideAttrs (_: {
+          shellHook = "";
+        });
         default = (mkPkgs system).mkShell {
           packages = with (mkPkgs system); [
             git
