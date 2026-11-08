@@ -1,7 +1,12 @@
 import { defaultExclude, defineConfig } from 'vite-plus'
 
+import { generateIgnorePatterns } from './src/index.ts'
+
+const ignorePatterns = await generateIgnorePatterns(new URL('.', import.meta.url))
+
 export default defineConfig({
   fmt: {
+    ignorePatterns,
     arrowParens: 'always',
     experimentalSortImports: {
       ignoreCase: true,
@@ -15,7 +20,7 @@ export default defineConfig({
     semi: false,
     singleQuote: true,
   },
-  lint: { options: { typeAware: true, typeCheck: true } },
+  lint: { ignorePatterns, options: { typeAware: true, typeCheck: true } },
   test: { exclude: [...defaultExclude, '**/.direnv/**'] },
   pack: { entry: ['src/index.ts'], format: ['esm'], platform: 'node', dts: true, clean: true },
   run: {
