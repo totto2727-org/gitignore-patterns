@@ -1,4 +1,4 @@
-import { defaultExclude, defineConfig } from 'vite-plus'
+import { defineConfig } from 'vite-plus'
 
 import { generateIgnorePatterns } from './src/index.ts'
 
@@ -21,7 +21,7 @@ export default defineConfig({
     singleQuote: true,
   },
   lint: { ignorePatterns, options: { typeAware: true, typeCheck: true } },
-  test: { exclude: [...defaultExclude, '**/.direnv/**'] },
+  test: { include: ['{src,tests}/**/*.test.ts'] },
   pack: { entry: ['src/index.ts'], format: ['esm'], platform: 'node', dts: true, clean: true },
   run: {
     tasks: {
