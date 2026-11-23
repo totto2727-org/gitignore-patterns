@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 import { defaultExclude, defineConfig } from 'vite-plus'
 
 import { generateIgnorePatterns } from './src/index.ts'
@@ -20,7 +22,17 @@ export default defineConfig({
     semi: false,
     singleQuote: true,
   },
-  lint: { ignorePatterns, options: { typeAware: true, typeCheck: true } },
+  lint: {
+    ignorePatterns,
+    jsPlugins: [fileURLToPath(import.meta.resolve('@totto2727/oxlint'))],
+    options: { typeAware: true, typeCheck: true },
+    rules: {
+      'rules/no-eslint-disable-comments': 'error',
+      'rules/no-jsx-script-tag': 'error',
+      'rules/require-disable-reason': 'error',
+      'rules/require-import-extension': 'error',
+    },
+  },
   test: { exclude: [...defaultExclude, '**/.direnv/**'] },
   pack: { entry: ['src/index.ts'], format: ['esm'], platform: 'node', dts: true, clean: true },
   run: {
