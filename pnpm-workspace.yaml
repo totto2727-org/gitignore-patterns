@@ -4,5 +4,5 @@ minimumReleaseAgeStrict: true
 # Match the installed Vite+ core and bundled Vitest toolchain.
 # https://viteplus.dev/guide/local-cli
 overrides:
-  vite@*: npm:@voidzero-dev/vite-plus-core@1.1.0
-  vitest@*: 5.0.3
+  vite@*: npm:@voidzero-dev/vite-plus-core@8.3.8000
+  vitest@*: 5.1.0
