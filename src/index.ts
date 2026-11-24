@@ -90,7 +90,8 @@ export const generateIgnorePatterns = async (
     }
     base.push({ directory: sources.worktree, rules })
   }
-  const rootExcluded = sources !== undefined && sources.worktree !== rootPath && isIgnored(base, rootPath, true)
+  const rootExcluded =
+    sources !== undefined && relativePath(sources.worktree, rootPath) !== '' && isIgnored(base, rootPath, true)
   const patterns: string[] = []
   const visit = async (directory: string, inherited: readonly Matcher[]): Promise<void> => {
     const contents = rootExcluded ? undefined : await readRules(resolve(directory, '.gitignore'), false)
@@ -114,7 +115,8 @@ export const generateIgnorePatterns = async (
 
       if (directoryEntry && !ignored) {
         // A higher-priority negation can reopen this directory. Do not let an individual parser's
-        // cached parent exclusion hide children that the combined rules made reachable.
+        // cached parent exclusion hide children that the combined rules made reachable. This
+        // depth-only exception belongs to this subtree, so it never reopens a sibling.
         const reachable = matchers.map((matcher) => {
           const path = relativePath(matcher.directory, entryPath)
           if (!matcher.rules.test(`${path}/`).ignored) return matcher
