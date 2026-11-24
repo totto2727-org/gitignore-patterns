@@ -4,7 +4,8 @@ Contributor and release-maintainer guidance for this npm library.
 
 ## Repository structure
 
-- `src/index.ts`: Public snapshot generator.
+- `src/index.ts`: Public snapshot generator, scoped matching, and filesystem traversal.
+- `src/git-excludes.ts`: Optional Git discovery for the effective global ignore file and the current worktree’s repository-local exclude file.
 - `src/index.test.ts`: Public API and filesystem behavior tests.
 - `tests/cli.test.ts`: Real Git and VitePlus CLI integration scenarios.
 - `package.json`: npm identity, dependencies, and ESM/type exports.
@@ -33,8 +34,8 @@ Use VitePlus for dependency management and project tasks, with pnpm selected by 
 
 - `generateIgnorePatterns` and `GenerateIgnorePatternsOptions` are the public exports. Delegate Gitignore grammar to the `ignore` dependency.
 - The generator takes a snapshot of filesystem entries and exports escaped root-relative positive literals for VitePlus. Do not flatten Gitignore source rules into consumer configuration.
-- Do not traverse `.git`, symbolic-link roots, or symbolic links. Emit and prune ignored directories. Negations below an ignored directory are unreachable, as in Git.
-- The runtime library has no Git or VitePlus dependency. These executables are test-only integration dependencies.
+- Do not traverse `.git`, symbolic-link roots, or symlinks in the enumerated tree. Allow repository-wide exclude files to be symlinks to regular files. Emit and prune ignored directories. Negations below an ignored directory are unreachable, as in Git.
+- Git is optional at runtime. Use it to resolve the snapshot’s worktree, its `info/exclude`, and effective `core.excludesFile`, not as a per-entry matcher. Do not let inherited repository-location variables select a different worktree. If Git is absent or the root is outside a worktree, retain `.gitignore`-only behavior. Propagate configuration or discovery failures instead of treating broken repositories as clean. VitePlus is a development and integration-test dependency, not a runtime dependency.
 - Keep `exports` and `files` aligned with `dist/index.mjs` and `dist/index.d.mts`. This package is ESM-only. Type declarations are resolved through `exports`.
 - Test the public entry point. CLI tests must execute actual Git and the installed VitePlus binary, not mock their pattern handling.
 

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 
-import { expect, test } from 'vite-plus/test'
+import { afterAll, beforeAll, expect, test, vi } from 'vite-plus/test'
 
 import { generateIgnorePatterns } from './index.ts'
 
@@ -12,13 +12,18 @@ const exec = promisify(execFile)
 
 const temporary = new URL('../tmp/', import.meta.url)
 
+beforeAll(() => {
+  vi.stubEnv('GIT_CONFIG_NOSYSTEM', '1')
+  vi.stubEnv('GIT_CONFIG_GLOBAL', '/dev/null')
+  vi.stubEnv('XDG_CONFIG_HOME', fileURLToPath(new URL('empty-config/', temporary)))
+  vi.stubEnv('GIT_CEILING_DIRECTORIES', fileURLToPath(temporary).replace(/\/$/, ''))
+})
+
+afterAll(() => vi.unstubAllEnvs())
+
 const gitIgnored = async (root: string, path: string): Promise<boolean> => {
   try {
-    await exec(
-      'git',
-      ['-c', 'core.excludesFile=/dev/null', '-c', 'core.ignorecase=false', 'check-ignore', '--no-index', '-q', path],
-      { cwd: root },
-    )
+    await exec('git', ['-c', 'core.ignorecase=false', 'check-ignore', '--no-index', '-q', path], { cwd: root })
     return true
   } catch (error) {
     expect((error as { code: number }).code).toBe(1)
@@ -140,6 +145,85 @@ test('generateIgnorePatterns 7: ignores ancestor rules outside root', async () =
     await write(root, '.gitignore', '*.log\n')
     await write(root, 'child/visible.log')
     expect(await generateIgnorePatterns(join(root, 'child'))).toEqual([])
+  })
+})
+
+test('linked worktree uses shared excludes anchored to the worktree, not the scan directory', async () => {
+  await withRoots(async (root, external) => {
+    await exec(
+      'git',
+      [
+        '-c',
+        'user.name=Fixture',
+        '-c',
+        'user.email=fixture@example.invalid',
+        'commit',
+        '--allow-empty',
+        '-qm',
+        'fixture',
+      ],
+      { cwd: root },
+    )
+    const linked = join(external, 'linked')
+    await exec('git', ['worktree', 'add', '--quiet', '--detach', linked], { cwd: root })
+    await write(root, '.git/info/exclude', '/root-only.js\n/pkg/scoped.js\ntmp/\n')
+    await write(linked, 'root-only.js')
+    await write(linked, 'pkg/root-only.js')
+    await write(linked, 'pkg/scoped.js')
+    await write(linked, 'pkg/tmp/item.js')
+    expect(await gitIgnored(linked, 'pkg/root-only.js')).toBe(false)
+    expect(await gitIgnored(linked, 'pkg/scoped.js')).toBe(true)
+    expect(await generateIgnorePatterns(linked)).toEqual(['/pkg/scoped.js', '/pkg/tmp/', '/root-only.js'])
+    expect(await generateIgnorePatterns(join(linked, 'pkg'))).toEqual(['/scoped.js', '/tmp/'])
+  })
+})
+
+test('uses a symlinked XDG Git ignore file when no explicit excludes file is configured', async () => {
+  await withRoots(async (root, external) => {
+    const xdg = join(external, 'xdg')
+    const previous = process.env['XDG_CONFIG_HOME']
+    vi.stubEnv('XDG_CONFIG_HOME', xdg)
+    try {
+      await write(external, 'store/git-ignore', '/private.js\n')
+      await mkdir(join(xdg, 'git'), { recursive: true })
+      await symlink(join(external, 'store/git-ignore'), join(xdg, 'git/ignore'))
+      await write(root, 'private.js')
+      await write(root, 'nested/private.js')
+      const selected = await exec('git', ['check-ignore', '--no-index', 'private.js', 'nested/private.js'], {
+        cwd: root,
+      })
+      expect(selected.stdout.trim()).toBe('private.js')
+      expect(await generateIgnorePatterns(root)).toEqual(['/private.js'])
+    } finally {
+      vi.stubEnv('XDG_CONFIG_HOME', previous)
+    }
+  })
+})
+
+test('reopening one globally ignored directory preserves child exclusions and leaves its sibling closed', async () => {
+  await withRoots(async (root, external) => {
+    await write(external, 'global-ignore', '/area/*/\n*.secret\n')
+    await exec('git', ['config', 'core.excludesFile', join(external, 'global-ignore')], { cwd: root })
+    await write(root, '.gitignore', '!/area/open/\n')
+    await write(root, 'area/open/public.js')
+    await write(root, 'area/open/private.secret')
+    await write(root, 'area/shut/.gitignore', '!public.js\n')
+    await write(root, 'area/shut/public.js')
+    expect(await gitIgnored(root, 'area/open/public.js')).toBe(false)
+    expect(await gitIgnored(root, 'area/open/private.secret')).toBe(true)
+    expect(await gitIgnored(root, 'area/shut/public.js')).toBe(true)
+    expect(await generateIgnorePatterns(root)).toEqual(['/area/open/private.secret', '/area/shut/'])
+    expect(await generateIgnorePatterns(join(root, 'area/shut'))).toEqual(['/.gitignore', '/public.js'])
+  })
+})
+
+test('a directory outside Git still snapshots its own ignore files', async () => {
+  await withRoots(async (root) => {
+    await rm(join(root, '.git'), { recursive: true })
+    await write(root, '.gitignore', 'drop.js\n')
+    await write(root, 'drop.js')
+    await write(root, 'keep.js')
+    expect(await generateIgnorePatterns(root)).toEqual(['/drop.js'])
   })
 })
 

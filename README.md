@@ -1,6 +1,6 @@
 # @totto2727/gitignore-patterns
 
-Generate sorted, root-anchored, escaped VitePlus ignore patterns from the entries currently excluded by reachable `.gitignore` files, using the established [`ignore`](https://github.com/kaelzhang/node-ignore) parser for Gitignore syntax.
+Generate sorted, root-anchored, escaped VitePlus ignore patterns from the entries currently excluded by Git ignore rules, using the established [`ignore`](https://github.com/kaelzhang/node-ignore) parser for Gitignore syntax.
 
 ## Usage
 
@@ -24,14 +24,16 @@ An ignored parent directory cannot be reopened by a rule inside that directory.
 
 ## Key features
 
-- Discovers reachable nested Gitignore files and preserves their directory scope and precedence.
+- In a worktree, applies the effective global ignore file, the repository’s `info/exclude`, and reachable `.gitignore` files in increasing order of priority.
+- Preserves the directory scope of nested `.gitignore` files and their ability to override lower-priority rules.
 - Delegates comments, escapes, negation, and pattern parsing to `ignore`.
 - Produces escaped positive literals for consumer glob configuration, including escaped braces, and prunes ignored directories.
-- Ships ESM JavaScript and TypeScript declarations through npm with no runtime Git or VitePlus dependency.
+- Ships ESM JavaScript and TypeScript declarations through npm. VitePlus is not required at runtime.
 
 ## Prerequisites
 
 - Node.js 24 or later, with read access to the chosen tree.
+- For repository-wide excludes, Git 2.31 or later on `PATH`. Without Git, the scan still applies reachable `.gitignore` files.
 - A consumer `ignorePatterns` configuration rooted at the same directory as `root`, such as VitePlus fmt and lint. The output is not a general-purpose minimatch or arbitrary glob configuration.
 
 ## Setup
@@ -65,9 +67,16 @@ Call the function again after files or Gitignore rules change.
 A previously emitted ignored-directory pattern covers new descendants, but newly created individually ignored files require regeneration.
 VitePlus independently reads Gitignore files, so its native exclusions are additive and may differ from Git for valid patterns such as literal braces or symlink traversal.
 This package escapes its snapshot literals correctly but cannot undo exclusions independently imposed by a consumer.
-Only `.gitignore` files at or below the supplied root participate, and `.git`, ancestor rules, global excludes, `.git/info/exclude`, and tracked-file status are excluded from the snapshot.
-A reachable ignored `.gitignore` is loaded, but symbolic links and symbolic `.gitignore` files are never followed.
-The scan preserves filesystem errors such as `ENOENT`, rejects invalid roots with `TypeError`, and is not an atomic security boundary.
+Only `.gitignore` files at or below the supplied root participate. The scan skips `.git` entries and does not query tracked-file status. It loads a reachable `.gitignore` even if its name matches an ignore rule. It does not traverse symlink entries or follow symbolic `.gitignore` files.
+
+### Repository-wide excludes
+
+Inside a worktree, Git identifies the effective `core.excludesFile` and the repository’s `info/exclude` path, including shared metadata for linked worktrees. If `core.excludesFile` is unset, the global file defaults to `$XDG_CONFIG_HOME/git/ignore`, or `$HOME/.config/git/ignore` if `XDG_CONFIG_HOME` is empty or unset. A configured file replaces the default. An empty setting disables the global file. These two repository-wide rule sources may be symlinks to regular files, as in a Nix-managed configuration. Missing files contribute no rules. See [Git’s ignore precedence](https://git-scm.com/docs/gitignore#_description).
+
+Repository-wide patterns match paths relative to the actual worktree root, even when the snapshot starts in a subdirectory. Output remains relative to the supplied directory. If repository-wide rules already exclude that directory or an ancestor, its immediate entries are emitted and directories are pruned. The scan deliberately does not import `.gitignore` files above the supplied root. It does not switch rule sources when it encounters a nested repository.
+
+Outside a worktree or when the Git executable is missing, only reachable `.gitignore` files participate. Other Git errors, such as invalid configuration, and filesystem errors other than missing rule files reject the call.
+A missing root still rejects with `ENOENT`. A non-directory or symbolic-link root rejects with `TypeError`. The scan is not an atomic security boundary.
 
 ## Development
 
