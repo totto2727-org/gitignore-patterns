@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 
-import { defaultExclude, defineConfig } from 'vite-plus'
+import { defineConfig } from 'vite-plus'
 
 import { generateIgnorePatterns } from './src/index.ts'
 
@@ -33,7 +33,7 @@ export default defineConfig({
       'rules/require-import-extension': 'error',
     },
   },
-  test: { exclude: [...defaultExclude, '**/.direnv/**'] },
+  test: { include: ['{src,tests}/**/*.test.ts'] },
   pack: { entry: ['src/index.ts'], format: ['esm'], platform: 'node', dts: true, clean: true },
   run: {
     tasks: {
