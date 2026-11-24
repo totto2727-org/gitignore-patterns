@@ -1,6 +1,6 @@
 {
   "name": "@totto2727/gitignore-patterns",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Snapshot Gitignore exclusions as escaped, root-relative VitePlus patterns",
   "license": "MIT",
   "repository": {

@@ -1,9 +1,9 @@
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { afterAll, expect, test } from 'vite-plus/test'
+import { afterAll, beforeAll, expect, test, vi } from 'vite-plus/test'
 
 import { generateIgnorePatterns } from '../src/index.ts'
 
@@ -13,7 +13,14 @@ const temporary = await mkdtemp(resolve(temporaryParent, 'gitignore-acceptance-'
 
 const vpCli = fileURLToPath(new URL('../node_modules/vite-plus/bin/vp', import.meta.url))
 
+beforeAll(() => {
+  vi.stubEnv('GIT_CONFIG_NOSYSTEM', '1')
+  vi.stubEnv('GIT_CONFIG_GLOBAL', resolve(temporary, 'gitconfig'))
+  vi.stubEnv('XDG_CONFIG_HOME', resolve(temporary, 'xdg'))
+})
+
 afterAll(async () => {
+  vi.unstubAllEnvs()
   await rm(temporary, { recursive: true, force: true })
 })
 
@@ -26,8 +33,6 @@ const command = (command: string, args: string[], cwd: string, stdin?: string) =
         cwd,
         env: {
           ...process.env,
-          GIT_CONFIG_NOSYSTEM: '1',
-          GIT_CONFIG_GLOBAL: resolve(temporary, 'empty-git-config'),
           NO_COLOR: '1',
         },
         timeout: 30_000,
@@ -256,6 +261,32 @@ for (const scenario of scenarios) {
     }
   }, 120_000)
 }
+
+test('consumer local and global excludes: Git, formatter and linter agree on source precedence', async () => {
+  const ignores = { '.gitignore': '!keep-global.js\n!keep-info.js\nrepo-wins.js\n' }
+  const allowed = ['visible.js', 'info-wins.js', 'keep-global.js', 'keep-info.js', 'pkg/root-only.js']
+  const files = [...allowed, 'tmp/data.js', 'pkg/.claude/settings.js', 'global-only.js', 'repo-wins.js', 'root-only.js']
+  const directory = await createFixture('local-global', files, ignores)
+  const target = resolve(temporary, 'immutable-global-excludes')
+  const link = resolve(temporary, 'git-ignore-link')
+  await writeFile(target, '/root-only.js\nglobal-only.js\ninfo-wins.js\nkeep-global.js\n')
+  await symlink(target, link)
+  expect((await command('git', ['config', '--global', 'core.excludesFile', link], directory)).code).toBe(0)
+  await write(directory, '.git/info/exclude', 'tmp/\n.claude/\n!info-wins.js\nkeep-info.js\n!repo-wins.js\n')
+  try {
+    expect((await gitSelected(directory, files)).sort()).toEqual([...allowed].sort())
+    const patterns = await generateIgnorePatterns(directory)
+    await moveIgnores(directory, ignores, true)
+    await write(directory, '.git/info/exclude', '')
+    expect((await command('git', ['config', '--global', '--unset', 'core.excludesFile'], directory)).code).toBe(0)
+    await writeConfig(directory, [])
+    await assertCliSelection(directory, files, files, 'no source rules or generated exclusions')
+    await writeConfig(directory, patterns)
+    await assertCliSelection(directory, files, allowed, 'local and global snapshot')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+}, 120_000)
 
 test('consumer snapshot refresh: new ignored files require a refreshed snapshot', async () => {
   const ignores = { '.gitignore': 'future-*.js\n/generated/\n' }
